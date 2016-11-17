@@ -10,7 +10,6 @@ var loaders = [
     }
   }, {
     test: /\.css$/,
-    exclude: /node_modules/,
     loaders: [
       ExtractTextPlugin.extract('style-loader', 'css-loader'),
       'css-loader'
@@ -25,6 +24,7 @@ var loaders = [
 ];
 var resolve = {
   alias: {
+    mapbox: 'mapbox-gl/dist',
     geonotebook: './index',
     geojs: 'geojs/src',
     jquery: 'jquery/dist/jquery',

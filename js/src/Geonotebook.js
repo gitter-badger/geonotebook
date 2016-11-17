@@ -1,4 +1,4 @@
-import MapObject from './MapObject';
+import MapObject from './MapboxObject';
 import {
   is_response,
   is_request,
