@@ -88,19 +88,21 @@ MapboxObject.prototype.set_center = function (x, y, z) {
   if (x < -180.0 || x > 180.0 || y < -90.0 || y > 90.0) {
     throw new constants.InvalidParams('Invalid parameters sent to set_center!');
   }
-  this.geojsmap.center({x: x, y: y});
-  this.geojsmap.zoom(z);
+  this.mapboxmap.flyTo({ // or jumpTo without animation
+    center: [x, y],
+    zoom: z
+  });
 
   return [x, y, z];
 };
 
 MapboxObject.prototype.get_layer = function (layer_name) {
-  return _.find(this.geojsmap.layers(),
-                  function (l) { return l.name() === layer_name; });
+  return this.mapboxmap.getLayer(layer_name);
 };
 
 MapboxObject.prototype.remove_layer = function (layer_name) {
-  this.geojsmap.deleteLayer(this.get_layer(layer_name));
+  this.mapboxmap.removeLayer(layer_name);
+  this.mapboxmap.removeSource(layer_name + '-source');
   return layer_name;
 };
 
@@ -170,125 +172,54 @@ MapboxObject.prototype._set_layer_zindex = function (layer, index) {
 };
 
 MapboxObject.prototype.add_osm_layer = function (layer_name, url, params) {
-  var osm = this.geojsmap.createLayer('osm');
-
-  osm.name(layer_name);
-  osm.url = url;
-
-    // make sure zindex is explicitly set
-  this._set_layer_zindex(osm, params['zIndex']);
-
   return layer_name;
 };
 
 MapboxObject.prototype.replace_wms_layer = function (layer_name, base_url, params) {
-  var old_layer = _.find(this.geojsmap.layers(), function (e) { return e.name() === layer_name; });
-
-  if (old_layer === undefined) {
-    console.log('Could not find ' + layer_name + ' layer'); // eslint-disable-line no-console
-    return false;
-  } else {
-    var projection = 'EPSG:3857';
-
-    var wms = this.geojsmap.createLayer('osm', {
-      keepLower: false,
-      attribution: null
-    });
-    wms.name(layer_name);
-    this._set_layer_zindex(wms, old_layer.zIndex());
-
-    wms.url(function (x, y, zoom) {
-      var bb = wms.gcsTileBounds({
-        x: x,
-        y: y,
-        level: zoom
-      }, projection);
-
-      var bbox_mercator = bb.left + ',' + bb.bottom + ',' +
-                    bb.right + ',' + bb.top;
-
-      var local_params = {
-        'SERVICE': 'WMS',
-        'VERSION': '1.3.0',
-        'REQUEST': 'GetMap',
-                //                     'LAYERS': layer_name, // US Elevation
-        'STYLES': '',
-        'BBOX': bbox_mercator,
-        'WIDTH': 512,
-        'HEIGHT': 512,
-        'FORMAT': 'image/png',
-        'TRANSPARENT': true,
-        'SRS': projection,
-        'TILED': true
-                // TODO: What if anythin should be in SLD_BODY?
-             // 'SLD_BODY': sld
-      };
-
-      if (params['SLD_BODY']) {
-        local_params['SLD_BODY'] = params['SLD_BODY'];
-      }
-
-      return base_url + '&' + $.param(local_params);
-    });
-
-    this.geojsmap.deleteLayer(old_layer);
-
-    return true;
-  }
+  return this.add_wms_layer(layer_name, base_url, params);
 };
 
 MapboxObject.prototype.add_wms_layer = function (layer_name, base_url, params) {
     // If a layer with this name already exists,  replace it
   if (this.get_layer(layer_name) !== undefined) {
-    this.geojsmap.deleteLayer(this.get_layer(layer_name));
+    this.remove_layer(layer_name);
   }
 
-  var projection = 'EPSG:3857';
-
-  var wms = this.geojsmap.createLayer('osm', {
-    keepLower: false,
-    attribution: null
-  });
-
-    // make sure zindex is explicitly set
-  this._set_layer_zindex(wms, params['zIndex']);
-
-  wms.name(layer_name);
-
-  wms.url(function (x, y, zoom) {
-    var bb = wms.gcsTileBounds({
-      x: x,
-      y: y,
-      level: zoom
-    }, projection);
-
-    var bbox_mercator = bb.left + ',' + bb.bottom + ',' +
-                 bb.right + ',' + bb.top;
-
-    var local_params = {
-      'SERVICE': 'WMS',
-      'VERSION': '1.3.0',
-      'REQUEST': 'GetMap',
+  var tile_size = 512;
+  var local_params = {
+    'SERVICE': 'WMS',
+    'VERSION': '1.3.0',
+    'REQUEST': 'GetMap',
 //                     'LAYERS': layer_name, // US Elevation
-      'STYLES': '',
-      'BBOX': bbox_mercator,
-      'WIDTH': 512,
-      'HEIGHT': 512,
-      'FORMAT': 'image/png',
-      'TRANSPARENT': true,
-      'SRS': projection,
-      'TILED': true
-             // TODO: What if anythin should be in SLD_BODY?
-             // 'SLD_BODY': sld
-    };
+    'STYLES': '',
+    'BBOX': '{bbox-epsg-3857}',
+    'WIDTH': tile_size,
+    'HEIGHT': tile_size,
+    'FORMAT': 'image/png',
+    'TRANSPARENT': true,
+    'SRS': 'EPSG:3857',
+    'TILED': true
+           // TODO: What if anythin should be in SLD_BODY?
+           // 'SLD_BODY': sld
+  };
 
-    if (params['SLD_BODY']) {
-      local_params['SLD_BODY'] = params['SLD_BODY'];
-    }
+  if (params['SLD_BODY']) {
+    local_params['SLD_BODY'] = params['SLD_BODY'];
+  }
 
-    return base_url + '&' + $.param(local_params);
+  var url = base_url + '&' + $.param(local_params);
+
+  this.mapboxmap.addSource(layer_name + '-source', {
+    type: 'raster',
+    tiles: [url],
+    tileSize: tile_size
   });
-
+  this.mapboxmap.addLayer({
+    id: layer_name,
+    type: 'raster',
+    source: layer_name + '-source',
+    paint: {}
+  });
   return layer_name;
 };
 
