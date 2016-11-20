@@ -41,7 +41,7 @@ MapboxObject.prototype.init_map = function () {
   $('#geonotebook-map').empty();
   this.mapboxmap = new mapboxgl.Map({
     container: 'geonotebook-map',
-    style: 'mapbox://styles/mapbox/streets-v8'
+    style: 'mapbox://styles/mapbox/basic-v9'
   });
   this.draw = new Draw();
   this.mapboxmap.addControl(this.draw);
@@ -218,7 +218,7 @@ MapboxObject.prototype.add_wms_layer = function (layer_name, base_url, params) {
     type: 'raster',
     source: layer_name + '-source',
     paint: {}
-  });
+  }, 'tunnel_minor');
   return layer_name;
 };
 
