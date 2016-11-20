@@ -54,6 +54,9 @@ module.exports = [
     plugins: [
       define_plugin,
       new ExtractTextPlugin('styles.css')
-    ]
+    ],
+    node: {
+      fs: 'empty'
+    }
   }
 ];

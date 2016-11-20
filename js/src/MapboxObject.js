@@ -2,7 +2,7 @@ import _ from 'underscore';
 
 import mapboxgl from 'mapbox/mapbox-gl-dev';
 import 'mapbox/mapbox-gl.css';
-import 'mapbox-gl-draw/dist/mapbox-gl-draw';
+import Draw from 'mapbox-gl-draw';
 import 'mapbox-gl-draw/dist/mapbox-gl-draw.css';
 
 import annotate from './jsonrpc/annotate';
@@ -43,7 +43,7 @@ MapboxObject.prototype.init_map = function () {
     container: 'geonotebook-map',
     style: 'mapbox://styles/mapbox/streets-v8'
   });
-  this.draw = window.mapboxgl.Draw();
+  this.draw = new Draw();
   this.mapboxmap.addControl(this.draw);
 };
 
@@ -192,7 +192,6 @@ MapboxObject.prototype.add_wms_layer = function (layer_name, base_url, params) {
     'REQUEST': 'GetMap',
 //                     'LAYERS': layer_name, // US Elevation
     'STYLES': '',
-    'BBOX': '{bbox-epsg-3857}',
     'WIDTH': tile_size,
     'HEIGHT': tile_size,
     'FORMAT': 'image/png',
@@ -207,7 +206,7 @@ MapboxObject.prototype.add_wms_layer = function (layer_name, base_url, params) {
     local_params['SLD_BODY'] = params['SLD_BODY'];
   }
 
-  var url = base_url + '&' + $.param(local_params);
+  var url = base_url + '&' + $.param(local_params) + '&BBOX={bbox-epsg-3857}';
 
   this.mapboxmap.addSource(layer_name + '-source', {
     type: 'raster',
