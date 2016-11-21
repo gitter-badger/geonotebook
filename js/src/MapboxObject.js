@@ -9,6 +9,7 @@ import annotate from './jsonrpc/annotate';
 import constants from './jsonrpc/constants';
 
 mapboxgl.accessToken = 'pk.eyJ1IjoiamJlZXpsZXkiLCJhIjoiaHlXM01kNCJ9.od3nUvvjbGjwOAr6E7o7xQ';
+var annotation_id = 0;
 
 var MapboxObject = function (notebook) {
   this.notebook = notebook;
@@ -37,13 +38,44 @@ MapboxObject.prototype.next_color = function () {
   return this.annotation_color_palette[idx];
 };
 
+// convert a geojson coordinate into {x, y}
+function convert_coordinate (coord) {
+  return {
+    x: coord[0],
+    y: coord[1]
+  };
+}
+
 MapboxObject.prototype.init_map = function () {
   $('#geonotebook-map').empty();
   this.mapboxmap = new mapboxgl.Map({
     container: 'geonotebook-map',
     style: 'mapbox://styles/mapbox/basic-v9'
   });
-  this.draw = new Draw();
+  this.draw = new Draw({
+    controls: {
+      point: true,
+      line_string: false,
+      polygon: true,
+      trash: true,
+      combine_features: false,
+      uncombine_features: false
+    }
+  });
+  this.mapboxmap.on(
+    'draw.create', (evt) => this.add_annotation(evt)
+  );
+  this.mapboxmap.on(
+    'draw.delete', function (evt) {
+      console.log(evt);
+    }
+  );
+  this.mapboxmap.on(
+    'draw.update', function (evt) {
+      console.log(evt);
+    }
+  );
+
   this.mapboxmap.addControl(this.draw);
 };
 
@@ -107,55 +139,53 @@ MapboxObject.prototype.remove_layer = function (layer_name) {
 };
 
 MapboxObject.prototype.clear_annotations = function () {
-  var annotation_layer = this.get_layer('annotation');
-  return annotation_layer.removeAllAnnotations();
+  this.draw.deleteAll();
+  return true;  // ?
 };
 
 MapboxObject.prototype.add_annotation = function (annotation) {
-  annotation.options('style').fillColor = this.next_color();
-  annotation.options('style').fillOpacity = 0.8;
-  annotation.options('style').strokeWidth = 2;
+  var fillColor = this.next_color();
+  /*
+  var fillOpacity = 0.8;
+  var strokeWidth = 2;
+  */
 
-  var annotation_meta = {
-    id: annotation.id(),
-    name: annotation.name(),
-    rgb: annotation.options('style').fillColor
+  var feature = annotation.features[0];
+  var geometry = feature.geometry;
+  var meta = {
+    id: ++annotation_id,
+    name: geometry.type + '-' + annotation_id,
+    rgb: fillColor
   };
+  var type;
+  var coordinates;
+
+  switch (geometry.type) {
+    case 'Point':
+      type = 'point';
+      coordinates = [convert_coordinate(geometry.coordinates)];
+      break;
+    case 'Polygon':
+      type = 'polygon';
+      coordinates = _.map(
+        geometry.coordinates[0],
+        convert_coordinate
+      );
+      break;
+    default:
+      throw new Error('Invalid feature type');
+  }
 
   this.notebook._remote.add_annotation(
-        annotation.type(),
-        annotation.coordinates('EPSG:4326'),
-        annotation_meta
+        type,
+        coordinates,
+        meta
     ).then(
-        function () {
-          annotation.layer().modified();
-          annotation.draw();
-        },
+        _.noop,
         this.rpc_error.bind(this));
 };
 
-// Note: point/polygon's fire 'state' when they are added to
-//       the map,  while rectangle's fire 'add'
-// See:  https://github.com/OpenGeoscience/geojs/issues/623
-MapboxObject.prototype.add_annotation_handler = function (evt) {
-  var annotation = evt.annotation;
-  if (annotation.type() === 'rectangle') {
-    this.add_annotation(annotation);
-  }
-};
-MapboxObject.prototype.state_annotation_handler = function (evt) {
-  var annotation = evt.annotation;
-  if (annotation.type() === 'point' || annotation.type() === 'polygon') {
-    this.add_annotation(annotation);
-  }
-};
-
 MapboxObject.prototype.add_annotation_layer = function (layer_name, params) {
-  var layer = this.geojsmap.createLayer('annotation', {
-    annotations: ['rectangle', 'point', 'polygon']
-  });
-  layer.name(layer_name);
-
   return layer_name;
 };
 

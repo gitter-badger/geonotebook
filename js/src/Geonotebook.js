@@ -20,7 +20,9 @@ var Geonotebook = function (Jupyter, events) {
   this.init_html_and_css();
   this.map = new MapObject(this);
   this.register_events(Jupyter, events);
-  this.load_annotation_buttons(Jupyter);
+  if (this.map.geojsmap) {
+    this.load_annotation_buttons(Jupyter);
+  }
   Jupyter.map = this.map;
 };
 
@@ -145,6 +147,9 @@ Geonotebook.prototype.init_html_and_css = function () {
 };
 
 Geonotebook.prototype.bind_key_to_geonotebook_event = function (Jupyter, key_binding, action_name, action_opts) {
+  if (!this.map.geojsmap) {
+    return;
+  }
   var prefix = 'geonotebook';
 
   action_opts = action_opts || {};
