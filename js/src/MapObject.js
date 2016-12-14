@@ -1,6 +1,7 @@
 import _ from 'underscore';
 import 'geojs';
 
+
 import GeoMap from 'geojs/map';
 import event from 'geojs/event';
 import annotate from './jsonrpc/annotate';
@@ -29,7 +30,7 @@ var MapObject = function (notebook) {
 MapObject.prototype.next_color = function () {
   this._color_counter = this._color_counter + 1;
 
-  var idx = this._color_counter % this.annotation_color_palette.length;
+    var idx = this._color_counter % this.annotation_color_palette.length;
 
   return this.annotation_color_palette[idx];
 };
@@ -83,7 +84,7 @@ MapObject.prototype.get_protocol = function () {
 };
 
 MapObject.prototype.set_center = function (x, y, z) {
-  if (x < -180.0 || x > 180.0 || y < -90.0 || y > 90.0) {
+  if (x<-180.0 || x > 180.0 || y < -90.0 || y > 90.0) {
     throw new constants.InvalidParams('Invalid parameters sent to set_center!');
   }
   this.geojsmap.center({x: x, y: y});
