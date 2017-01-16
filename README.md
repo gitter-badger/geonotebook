@@ -1,4 +1,6 @@
-## GeoNotebook [![CircleCI](https://circleci.com/gh/OpenGeoscience/geonotebook.svg?style=shield)](https://circleci.com/gh/OpenGeoscience/geonotebook)
+## GeoNotebook [![CircleCI](https://circleci.com/gh/OpenGeoscience/geonotebook.svg?style=shield)](https://circleci.com/gh/OpenGeoscience/geonotebook) [![Gitter chat](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/geonotebook/Lobby)
+
+[![Join the chat at https://gitter.im/OpenGeoscience/geonotebook](https://badges.gitter.im/OpenGeoscience/geonotebook.svg)](https://gitter.im/OpenGeoscience/geonotebook?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 GeoNotebook is an application that provides client/server
 enviroment with inteactive visualization and analysis capabilities
 using [Jupyter](http://jupyter.org), [GeoJS]
